@@ -35,6 +35,17 @@ namespace FileExplorer.Controllers
             return NotFound();
         }
 
+        [HttpPost]
+        public async Task<IActionResult> DeleteNode(string path)
+        {
+            // Lógica para encontrar el nodo por path y eliminarlo
+            // Puedes usar tu servicio para esto
+            var success = await _fileExplorerService.DeleteNodeByPathAsync(path);
+            if (success)
+                return Ok();
+            return BadRequest();
+        }
+
         private FileNode FindNodeByPath(FileNode node, string path)
         {
             if (node.Path == path)

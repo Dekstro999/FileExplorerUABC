@@ -52,6 +52,8 @@ namespace FileExplorer.Models
 
         public int CarreraId { get; set; }
 
+        public Carrera Carrera { get; set; }
+
 
         public ICollection<Materia> Materias { get; set; }
 
@@ -71,6 +73,6 @@ namespace FileExplorer.Models
 
         public int SemestreId { get; set; }
 
-        public Semestre Semestres{ get; set; } 
+        public Semestre Semestre{ get; set; }
     }
 }

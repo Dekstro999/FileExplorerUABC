@@ -16,6 +16,23 @@
             <i class="bi bi-folder-fill text-warning me-1"></i>
             @Model.Name
         </a>
+        @* Botón para materias *@
+        @if (!Model.IsDirectory)
+        {
+            <button class="btn btn-link btn-sm text-danger delete-node" data-path="@Model.Path" title="Eliminar">
+                <i class="bi bi-trash"></i>
+            </button>
+        }
+        @* Botón para semestres: si todos los hijos son materias O si está vacío *@
+        @if (Model.IsDirectory && (
+                (Model.Children != null && Model.Children.Count > 0 && Model.Children.All(c => !c.IsDirectory))
+                || (Model.Children == null || Model.Children.Count == 0)
+                ))
+        {
+            <button class="btn btn-link btn-sm text-danger delete-node" data-path="@Model.Path" title="Eliminar">
+                <i class="bi bi-trash"></i>
+            </button>
+        }
         @if (Model.Children.Count > 0)
         {
             <ul class="list-unstyled ps-0 ms-3" style="@(Model.IsExpanded ? "" : "display: none;")">
