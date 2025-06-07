@@ -1,0 +1,14 @@
+@model FileExplorer.Models.NewFolderViewModel
+
+<form id="createFolderForm" asp-action="CreateFolder" asp-controller="Home" method="post">
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label">Nombre de la carpeta</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <input type="hidden" asp-for="ParentId" />
+    <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear</button>
+    </div>
+</form>

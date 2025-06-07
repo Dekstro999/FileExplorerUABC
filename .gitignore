@@ -1,0 +1,84 @@
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.log
+
+## NuGet packages
+*.nupkg
+*.snupkg
+packages/
+*.nuspec
+project.lock.json
+project.assets.json
+*.csproj.user
+
+## Rider
+.idea/
+*.sln.iml
+
+## Visual Studio Code
+.vscode/
+
+## Others
+*.dbmdl
+*.dbproj.schemaview
+*.pdb
+*.cache
+*.ilk
+*.tmp
+*.tmp_proj
+
+## Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+## Web
+node_modules/
+bower_components/
+dist/
+build/
+
+## Others (optional)
+*.bak
+*.swp
+*.scc
+*.orig
+
+## ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+## JetBrains Rider
+.idea/
+
+## TFS
+$tf/
+
+## DotCover
+*.dotCover
+
+## Coverage results
+*.coverage
+*.coveragexml
+
+## Test results
+TestResults/
+*.trx
+*.vspx
+*.vsp
+
+## Publish profiles
+*.pubxml
+*.publishproj
+
+## Backup & local config
+*.bak
+*.local.json

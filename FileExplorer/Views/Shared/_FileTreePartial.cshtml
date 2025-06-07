@@ -1,0 +1,29 @@
+﻿@model FileExplorer.Models.FileNode
+
+<ul class="list-unstyled ps-0 @(Model.Name == "UABC" ? "" : "ms-3")">
+    <li>
+        @if (Model.Children.Count > 0)
+        {
+            <a href="#" class="tree-toggle text-decoration-none">
+                <i class="bi @(Model.IsExpanded ? "bi-chevron-down" : "bi-chevron-right")"></i>
+            </a>
+        }
+        else
+        {
+            <span class="ms-2"></span>
+        }
+        <a href="#" class="folder-name text-decoration-none" data-path="@Model.Path">
+            <i class="bi bi-folder-fill text-warning me-1"></i>
+            @Model.Name
+        </a>
+        @if (Model.Children.Count > 0)
+        {
+            <ul class="list-unstyled ps-0 ms-3" style="@(Model.IsExpanded ? "" : "display: none;")">
+                @foreach (var child in Model.Children)
+                {
+                    @await Html.PartialAsync("_FileTreePartial", child)
+                }
+            </ul>
+        }
+    </li>
+</ul>

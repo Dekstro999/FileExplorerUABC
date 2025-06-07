@@ -1,0 +1,138 @@
+﻿@model FileExplorer.Models.FileNode
+@{
+    ViewData["Title"] = "Explorador de Archivos UABC";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 bg-light p-3">
+            <h4>Explorador de Archivos UABC</h4>
+            <div id="file-tree" class="mt-3">
+                @await Html.PartialAsync("_FileTreePartial", Model)
+            </div>
+        </div>
+        <div class="col-md-9 p-3">
+            <div id="file-content" class="border p-3">
+                <h3 id="current-path">UABC</h3>
+                <div id="breadcrumb" class="mb-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item active" aria-current="page">UABC</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div id="folder-contents" class="row">
+                    @foreach (var child in Model.Children)
+                    {
+                        <div class="col-md-3 mb-3">
+                            <div class="card folder-card" data-path="@child.Path">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-folder-fill text-warning" style="font-size: 2rem;"></i>
+                                    <p class="mt-2 mb-0">@child.Name</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Manejar clic en carpetas en el panel principal
+            $(document).on('click', '.folder-card', function() {
+                const path = $(this).data('path');
+                loadFolderContents(path);
+            });
+
+            // Manejar clic en nodos del árbol
+            $(document).on('click', '.tree-toggle', function(e) {
+                e.preventDefault();
+                const $this = $(this);
+                const $parent = $this.parent();
+                const $icon = $this.find('i');
+                const $children = $parent.find('> ul');
+
+                if ($children.is(':visible')) {
+                    $children.hide();
+                    $icon.removeClass('bi-chevron-down').addClass('bi-chevron-right');
+                } else {
+                    $children.show();
+                    $icon.removeClass('bi-chevron-right').addClass('bi-chevron-down');
+                }
+            });
+
+            // Manejar clic en el nombre de la carpeta en el árbol
+            $(document).on('click', '.folder-name', function(e) {
+                e.preventDefault();
+                const path = $(this).data('path');
+                loadFolderContents(path);
+            });
+
+            function loadFolderContents(path) {
+                $.ajax({
+                    url: '/Home/GetFolderContents',
+                    type: 'GET',
+                    data: { path: path },
+                    success: function(data) {
+                        updateBreadcrumb(path);
+                        updateFolderContents(data);
+                    },
+                    error: function() {
+                        alert('Error al cargar el contenido de la carpeta');
+                    }
+                });
+            }
+
+            function updateBreadcrumb(path) {
+                const parts = path.split('/').filter(p => p);
+                let breadcrumb = '<ol class="breadcrumb">';
+                let currentPath = '';
+
+                breadcrumb += '<li class="breadcrumb-item"><a href="#" data-path="/UABC">UABC</a></li>';
+
+                for (let i = 1; i < parts.length; i++) {
+                    currentPath += '/' + parts[i];
+                    if (i === parts.length - 1) {
+                        breadcrumb += `<li class="breadcrumb-item active" aria-current="page">${parts[i]}</li>`;
+                    } else {
+                        breadcrumb += `<li class="breadcrumb-item"><a href="#" data-path="/UABC${currentPath}">${parts[i]}</a></li>`;
+                    }
+                }
+
+                breadcrumb += '</ol>';
+                $('#breadcrumb').html(breadcrumb);
+                $('#current-path').text(parts[parts.length - 1] || 'UABC');
+            }
+
+            function updateFolderContents(contents) {
+                let html = '';
+
+                contents.forEach(function(item) {
+                    html += `
+                        <div class="col-md-3 mb-3">
+                            <div class="card folder-card" data-path="${item.path}">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-folder-fill text-warning" style="font-size: 2rem;"></i>
+                                    <p class="mt-2 mb-0">${item.name}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                $('#folder-contents').html(html);
+            }
+
+            // Manejar clics en el breadcrumb
+            $(document).on('click', '#breadcrumb a', function(e) {
+                e.preventDefault();
+                const path = $(this).data('path');
+                loadFolderContents(path);
+            });
+        });
+    </script>
+}
