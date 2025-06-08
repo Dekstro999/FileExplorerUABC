@@ -17,12 +17,15 @@ namespace FileExplorer.Data
         public DbSet<Carrera> Carreras { get; set; }
         public DbSet<Semestre> Semestres { get; set; }
         public DbSet<Materia> Materias { get; set; }
+        public DbSet<Contenido> Contenidos { get; set; }
+        public DbSet<TipoArchivo> TiposArchivo { get; set; }
+        public DbSet<RecursoContenido> RecursosContenido { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configurar la relación jerárquica (self-referencing)
+            // Configuración Folder (ya existente)
             modelBuilder.Entity<Folder>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -39,9 +42,56 @@ namespace FileExplorer.Data
                     .HasForeignKey(f => f.ParentId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Índice para mejorar el rendimiento
                 entity.HasIndex(e => e.ParentId);
                 entity.HasIndex(e => new { e.ParentId, e.Name }).IsUnique();
+            });
+
+            // Configuración Contenido
+            modelBuilder.Entity<Contenido>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Numero)
+                    .IsRequired()
+                    .HasMaxLength(10);
+
+                entity.Property(e => e.Titulo)
+                    .IsRequired()
+                    .HasMaxLength(255);
+
+                entity.HasOne(e => e.Materia)
+                    .WithMany(m => m.Contenidos)
+                    .HasForeignKey(e => e.MateriaId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configuración TipoArchivo
+            modelBuilder.Entity<TipoArchivo>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Nombre).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Extension).HasMaxLength(10);
+                entity.Property(e => e.MimeType).HasMaxLength(100);
+            });
+
+            // Configuración RecursoContenido
+            modelBuilder.Entity<RecursoContenido>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Nombre).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Url).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Descripcion).HasMaxLength(500);
+                entity.Property(e => e.FechaRegistro).HasDefaultValueSql("GETDATE()");
+
+                entity.HasOne(e => e.Contenido)
+                    .WithMany(c => c.RecursosContenido)
+                    .HasForeignKey(e => e.ContenidoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.TipoArchivo)
+                    .WithMany(t => t.RecursosContenido)
+                    .HasForeignKey(e => e.TipoArchivoId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
 

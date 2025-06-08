@@ -74,5 +74,43 @@ namespace FileExplorer.Models
         public int SemestreId { get; set; }
 
         public Semestre Semestre{ get; set; }
+
+        public ICollection<Contenido> Contenidos { get; set; }
+    }
+
+    public class Contenido
+    {
+        public int Id { get; set; }
+        public int MateriaId { get; set; }
+        public string Numero { get; set; } = string.Empty; // Ejemplo: '1.1', '2.4'
+        public string Titulo { get; set; } = string.Empty; // Ejemplo: 'Historia de los patrones de software'
+
+        public Materia Materia { get; set; }
+
+        public ICollection<RecursoContenido> RecursosContenido { get; set; } 
+    }
+
+    public class TipoArchivo
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Extension { get; set; }
+        public string MimeType { get; set; }
+
+        public ICollection<RecursoContenido> RecursosContenido { get; set; }
+    }
+
+    public class RecursoContenido
+    {
+        public int Id { get; set; }
+        public int ContenidoId { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public int TipoArchivoId { get; set; }
+        public string Descripcion { get; set; }
+        public DateTime FechaRegistro { get; set; }
+
+        public Contenido Contenido { get; set; }
+        public TipoArchivo TipoArchivo { get; set; }
     }
 }

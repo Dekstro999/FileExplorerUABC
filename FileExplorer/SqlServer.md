@@ -1,7 +1,8 @@
 QUERY PARA CREAR BASE DE DATOS DE UNIVERSIDADES EN SQL SERVER
 
-`sql
+
 -- BORRAR TABLAS SI EXISTEN
+DROP TABLE IF EXISTS Contenidos;
 DROP TABLE IF EXISTS Materias;
 DROP TABLE IF EXISTS Semestres;
 DROP TABLE IF EXISTS Carreras;
@@ -51,6 +52,34 @@ CREATE TABLE Materias (
     SemestreId INT NOT NULL,
     FOREIGN KEY (SemestreId) REFERENCES Semestres(Id)
 );
+
+CREATE TABLE Contenidos (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    MateriaId INT NOT NULL,
+    Numero NVARCHAR(10) NOT NULL, -- ejemplo: '1.1', '2.4' etc . . .
+    Titulo NVARCHAR(255) NOT NULL, -- Por ejemplo: 'Historia de los patrones de software'
+    FOREIGN KEY (MateriaId) REFERENCES Materias(Id)
+);
+
+CREATE TABLE TiposArchivo (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Nombre NVARCHAR(100) NOT NULL,
+    Extension NVARCHAR(10),
+    MimeType NVARCHAR(100)
+);
+
+CREATE TABLE RecursosContenido (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    ContenidoId INT NOT NULL,
+    Nombre NVARCHAR(200) NOT NULL,
+    Url NVARCHAR(500) NOT NULL,
+    TipoArchivoId INT NOT NULL,
+    Descripcion NVARCHAR(500),
+    FechaRegistro DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (ContenidoId) REFERENCES Contenidos(Id),
+    FOREIGN KEY (TipoArchivoId) REFERENCES TiposArchivo(Id)
+);
+
 
 -- INSERTAR DATOS BASE
 
@@ -126,6 +155,7 @@ CROSS JOIN (
     SELECT 7 UNION ALL
     SELECT 8
 ) s;
+
 
 
 -- MATERIAS PARA "Tronco Comun de Ingenieria" (solo Semestre 1 y 2)
@@ -446,6 +476,33 @@ FROM (
 ) M
 JOIN Semestres S ON S.Nombre = CONCAT('Semestre ', M.NumSem)
 JOIN Carreras C ON C.Id = S.CarreraId AND C.Nombre = 'Software y Tecnologias Emergentes';
+
+
+-- CONTENIDOS DE EJEMPLO PARA LA MATERIA "Arquitectura de Software"
+INSERT INTO Contenidos (MateriaId, Numero, Titulo)
+SELECT M.Id, C.Numero, C.Titulo
+FROM Materias M
+JOIN Semestres S ON S.Id = M.SemestreId
+JOIN Carreras Cr ON Cr.Id = S.CarreraId
+CROSS JOIN (
+    SELECT '1.1' AS Numero, 'Historia de los patrones de software' AS Titulo
+    UNION ALL SELECT '1.2', 'Definición y estructura de los patrones de software'
+    UNION ALL SELECT '1.3', 'Niveles en los patrones de software'
+    UNION ALL SELECT '2.1', 'Definición de patrón arquitectónico'
+    UNION ALL SELECT '2.2', 'Patrones estructurales'
+    UNION ALL SELECT '2.3', 'Patrones para sistemas distribuidos'
+    UNION ALL SELECT '2.4', 'Patrones para sistemas interactivos'
+    UNION ALL SELECT '2.5', 'Patrones para sistemas adaptables'
+) C
+WHERE M.Nombre = 'Arquitectura de Software' AND Cr.Nombre = 'Software y Tecnologias Emergentes';
+
+
+INSERT INTO TiposArchivo (Nombre, Extension, MimeType) VALUES
+('Documento PDF', '.pdf', 'application/pdf'),
+('Presentación PowerPoint', '.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'),
+('Documento Word', '.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+('Video MP4', '.mp4', 'video/mp4'),
+('Imagen JPEG', '.jpg', 'image/jpeg');
 
 
 -- Eliminar semestres 1 y 2 de todas las carreras de Ingeniería excepto Tronco Común

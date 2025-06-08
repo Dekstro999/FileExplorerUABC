@@ -60,3 +60,9 @@ body {
     white-space: nowrap;
     line-height: 60px;
 }
+
+#show-sidebar-tab {
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    padding-left: 8px;
+    padding-right: 8px;
+}
