@@ -13,7 +13,7 @@
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
                 <a class="navbar-brand" href="/">
-                    <img src="~/images/uabc-logo.png" alt="UABC Logo" height="30" class="d-inline-block align-text-top me-2" />
+                    <img src="@Url.Content("~/images/LOGO_UABC.png")" alt="UABC Logo" height="30" class="d-inline-block align-text-top me-2" />
                     Explorador de Archivos UABC
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
@@ -27,6 +27,9 @@
                         </li>
                     </ul>
                 </div>
+                <button id="toggle-darkmode" class="btn btn-outline-secondary ms-2" type="button" title="Cambiar modo oscuro/claro">
+                    <i class="bi bi-moon"></i>
+                </button>
             </div>
         </nav>
     </header>
@@ -47,3 +50,86 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
+    <script>
+    $(function () {
+        // Cargar preferencia guardada
+        if (localStorage.getItem('dark-mode') === 'true') {
+            $('body').addClass('dark-mode');
+            $('#toggle-darkmode i').removeClass('bi-moon').addClass('bi-sun');
+        }
+
+        $('#toggle-darkmode').on('click', function () {
+            $('body').toggleClass('dark-mode');
+            const isDark = $('body').hasClass('dark-mode');
+            $('#toggle-darkmode i').toggleClass('bi-moon', !isDark).toggleClass('bi-sun', isDark);
+            localStorage.setItem('dark-mode', isDark);
+        });
+    });
+</script>
+
+<style>
+    body.dark-mode {
+        background-color: #181a1b !important;
+        color: #e9ecef !important;
+    }
+
+    body.dark-mode .bg-white,
+    body.dark-mode .bg-light,
+    body.dark-mode .navbar,
+    body.dark-mode .navbar-light,
+    body.dark-mode .card,
+    body.dark-mode .modal-content,
+    body.dark-mode .border,
+    body.dark-mode .border-top,
+    body.dark-mode .border-bottom {
+        background-color: #23272b !important;
+        color: #e9ecef !important;
+        border-color: #444 !important;
+    }
+
+    body.dark-mode .breadcrumb {
+        background-color: #23272b !important;
+        color: #e9ecef !important;
+    }
+
+    body.dark-mode .btn,
+    body.dark-mode .btn-outline-secondary {
+        background-color: #23272b !important;
+        color: #e9ecef !important;
+        border-color: #444 !important;
+    }
+
+    body.dark-mode .form-control,
+    body.dark-mode .form-select,
+    body.dark-mode textarea {
+        background-color: #23272b !important;
+        color: #e9ecef !important;
+        border-color: #444 !important;
+    }
+
+    body.dark-mode .dropdown-menu {
+        background-color: #23272b !important;
+        color: #e9ecef !important;
+    }
+
+    body.dark-mode .navbar,
+    body.dark-mode .footer {
+        background-color: #1f1f1f;
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .navbar a,
+    body.dark-mode .footer a {
+        color: #bb86fc;
+    }
+
+    body.dark-mode #sidebar-panel,
+    body.dark-mode #sidebar-panel * {
+        color: #e9ecef !important;
+    }
+
+    body.dark-mode #sidebar-panel .bi-folder-fill.text-warning {
+        color: #ffc107 !important; /* color amarillo Bootstrap */
+    }
+</style>

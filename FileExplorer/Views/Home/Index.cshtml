@@ -15,6 +15,7 @@
             <div id="file-tree" class="mt-3">
                 @await Html.PartialAsync("_FileTreePartial", Model)
             </div>
+            <div id="sidebar-resize-handle" style="position:absolute; top:0; right:0; width:6px; height:100%; cursor:ew-resize; z-index:1060;"></div>
         </div>
         <div id="sidebar-placeholder" class="d-none d-flex align-items-center justify-content-center" style="width:48px; min-width:48px; max-width:48px;">
             <button id="show-sidebar-tab" class="btn btn-outline-secondary btn-sm"
@@ -157,6 +158,41 @@
                 $('#main-panel').removeClass('flex-grow-1').css('width', '').addClass('col-md-9');
             });
         });
+
+
+
+        // Sidebar resizable
+        let isResizing = false;
+        let lastDownX = 0;
+        let sidebarMin = 180; // px
+        let sidebarMax = 600; // px
+
+        $('#sidebar-resize-handle').on('mousedown', function(e) {
+            isResizing = true;
+            lastDownX = e.clientX;
+            $('body').addClass('unselectable');
+            e.preventDefault();
+        });
+
+        $(document).on('mousemove', function(e) {
+            if (!isResizing) return;
+            let offsetRight = document.body.offsetWidth - e.clientX;
+            let newWidth = e.clientX - $('#sidebar-panel').offset().left;
+            if (newWidth < sidebarMin) newWidth = sidebarMin;
+            if (newWidth > sidebarMax) newWidth = sidebarMax;
+            $('#sidebar-panel').css('width', newWidth + 'px');
+            // $('#main-panel').css('margin-left', newWidth + 'px');
+        });
+
+        $(document).on('mouseup', function(e) {
+            if (isResizing) {
+                isResizing = false;
+                $('body').removeClass('unselectable');
+            }
+        });
+
+        // Opcional: CSS para evitar selección de texto al arrastrar
+        $('<style>.unselectable{user-select:none;}</style>').appendTo('head');
 
 
                     // Mostrar botones "+" solo en nivel de materia o contenido

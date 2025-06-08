@@ -9,7 +9,10 @@
   <ItemGroup>
     <Folder Include="NewFolder - Copia %282%29\" />
     <Folder Include="NewFolder - Copia %283%29\" />
-    <Folder Include="NewFolder - Copia\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\images\LOGO_UABC.png" />
   </ItemGroup>
 
   <ItemGroup>
