@@ -94,8 +94,8 @@ namespace FileExplorer.Models
     {
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
-        public string Extension { get; set; }
-        public string MimeType { get; set; }
+        public string? Extension { get; set; }
+        public string? MimeType { get; set; }
 
         public ICollection<RecursoContenido> RecursosContenido { get; set; }
     }

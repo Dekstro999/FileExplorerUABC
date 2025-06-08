@@ -92,6 +92,21 @@
             </div>
         </div>
     </div>
+    <!-- Modal para mostrar video de YouTube -->
+    <div class="modal fade" id="youtubeModal" tabindex="-1" aria-labelledby="youtubeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="youtubeModalLabel">Video de YouTube</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body p-0" style="height: 60vh;">
+                    <iframe id="youtubeIframe" width="100%" height="100%" frameborder="0"
+                            allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -238,7 +253,16 @@
                         <input type="text" class="form-control" name="Nombre" required />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">URL</label>
+                        <label class="form-label">URL
+                            <a tabindex="0" class="ms-1 info-icon" role="button"
+                               data-bs-toggle="popover"
+                               data-bs-trigger="manual"
+                               data-bs-placement="right"
+                               title="Soporte de URL's'"
+                               data-bs-content="Ingresa la URL completa de donde tengas alojado tu recurso o de algun video o pagina web, por ejemplo: https://www.ejemplo.com/archivo.pdf">
+                                <i class="bi bi-info-circle text-secondary"></i>
+                            </a>
+                        </label>
                         <input type="url" class="form-control" name="Url" required placeholder="https://..." />
                     </div>
                     <div class="mb-3">
@@ -257,6 +281,14 @@
                 $('#addForm').attr('data-type', 'recurso');
                 var modal = new bootstrap.Modal(document.getElementById('addModal'));
                 modal.show();
+
+                // Inicializar popover de Bootstrap para el icono de info
+                setTimeout(function() {
+                    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+                    popoverTriggerList.forEach(function (popoverTriggerEl) {
+                        new bootstrap.Popover(popoverTriggerEl);
+                    });
+                }, 100);
             });
         });
 
@@ -421,9 +453,15 @@
         }
 
         window.onpopstate = function(event) {
+            let path = '/UABC';
             if (event.state && event.state.path) {
-                loadFolderContents(event.state.path, false);
+                path = event.state.path;
+            } else {
+                // Si no hay estado, intenta obtener el path de la URL
+                const urlParams = new URLSearchParams(window.location.search);
+                path = urlParams.get('path') || '/UABC';
             }
+            loadFolderContents(path, false);
         };
 
         function loadRecursosContenido(path) {
@@ -439,6 +477,10 @@
                             const iconClass = getIconByTipo(r.tipo);
                             const desc = r.descripcion ? r.descripcion.replace(/"/g, '&quot;') : 'Sin descripción';
                             const fecha = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX') : 'Sin fecha';
+                            const url = r.url || '#';
+                            const urlTrunc = url.length > 30 ? url.substring(0, 30) + '...' : url;
+                            let isYoutube = (r.tipo && r.tipo.toLowerCase().includes('video en línea')) &&
+                                (r.url && r.url.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i));
                             html += `
                                 <div class="col-md-3 mb-3">
                                     <div class="card h-100 recurso-card position-relative">
@@ -449,7 +491,7 @@
                                                data-bs-placement="right"
                                                title="Información"
                                                data-bs-html="true"
-                                               data-bs-content="<strong>Descripción:</strong> ${desc}<br/><strong>Fecha:</strong> ${fecha}">
+                                               data-bs-content="<strong>Descripción:</strong> ${desc}<br/><strong>Fecha:</strong> ${fecha}<br/><strong>URL:</strong> <span class='url-trunc' title='${url}'>${urlTrunc}</span> <a href='#' class='copy-url' data-url='${url}' tabindex='-1' title='Copiar URL'><i class='bi bi-clipboard ms-1'></i></a>">
                                                 <i class="bi bi-info-circle text-secondary"></i>
                                             </a>
                                         </span>
@@ -457,13 +499,21 @@
                                             <i class="bi bi-trash"></i>
                                         </button>
                                         <div class="card-body text-center">
-                                            <a href="${r.url}" target="_blank" title="Abrir recurso">
-                                                <i class="bi ${iconClass}" style="font-size:2.5rem;"></i>
-                                            </a>
+                                            ${
+                                                isYoutube
+                                                ? `<a href="#" class="open-youtube" data-url="${r.url}" data-nombre="${r.nombre.replace(/"/g, '&quot;')}" title="Ver video de YouTube">
+                                                       <i class="bi bi-youtube text-danger" style="font-size:2.5rem;"></i>
+                                                   </a>`
+                                                : `<a href="${r.url}" target="_blank" title="Abrir recurso">
+                                                       <i class="bi ${iconClass}" style="font-size:2.5rem;"></i>
+                                                   </a>`
+                                            }
                                             <h6 class="mt-2 mb-1 text-truncate" title="${r.nombre}">
                                                 <a href="${r.url}" target="_blank" class="text-decoration-none">${r.nombre}</a>
                                             </h6>
-                                            <span class="badge bg-light text-dark">${r.tipo || ''}</span>
+                                            <span class="badge bg-light text-dark d-block text-truncate" style="max-width: 100%; width: 100%;" title="${r.tipo || ''}">
+                                                ${r.tipo || ''}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -475,13 +525,81 @@
                     }
                     $('#folder-contents').html(html);
 
-                    // Inicializar popovers de Bootstrap
+                            // Inicializar popovers de Bootstrap
                     var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
                     popoverTriggerList.forEach(function (popoverTriggerEl) {
                         new bootstrap.Popover(popoverTriggerEl);
                     });
+
+                    // Manejar apertura/cierre manual del popover
+                    $(document).off('click', '.info-icon').on('click', '.info-icon', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var $this = $(this);
+                        $('[data-bs-toggle="popover"]').not($this).each(function () {
+                            var pop = bootstrap.Popover.getInstance(this);
+                            if (pop) pop.hide();
+                        });
+                        var popover = bootstrap.Popover.getOrCreateInstance(this);
+                        if ($this.attr('aria-describedby')) {
+                            popover.hide();
+                        } else {
+                            popover.show();
+                        }
+                    });
+
+                    // Cierra el popover si se hace clic fuera
+                    $(document).off('click.popover-close').on('click.popover-close', function (e) {
+                        if (!$(e.target).closest('.popover, .info-icon').length) {
+                            $('[data-bs-toggle="popover"]').each(function () {
+                                var pop = bootstrap.Popover.getInstance(this);
+                                if (pop) pop.hide();
+                            });
+                        }
+                    });
+
+                    // Evento de copiar dentro del popover
+                    $(document).off('click', '.popover .copy-url').on('click', '.popover .copy-url', function (ev) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        const url = $(this).data('url');
+                        navigator.clipboard.writeText(url).then(function () {
+                            $(ev.target).closest('.copy-url').find('i').removeClass('bi-clipboard').addClass('bi-clipboard-check');
+                            setTimeout(() => {
+                                $(ev.target).closest('.copy-url').find('i').removeClass('bi-clipboard-check').addClass('bi-clipboard');
+                            }, 1200);
+                        });
+                    });
                 }
             });
+        }
+
+                // Evento para abrir el modal de YouTube
+        $(document).on('click', '.open-youtube', function(e) {
+            e.preventDefault();
+            const url = $(this).data('url');
+            const nombre = $(this).data('nombre') || 'Video de YouTube';
+            const videoId = getYoutubeId(url);
+            if (videoId) {
+                const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+                $('#youtubeIframe').attr('src', embedUrl);
+                $('#youtubeModalLabel').text(nombre);
+                var modal = new bootstrap.Modal(document.getElementById('youtubeModal'));
+                modal.show();
+            }
+        });
+
+        // Limpiar el iframe al cerrar el modal
+        $('#youtubeModal').on('hidden.bs.modal', function () {
+            $('#youtubeIframe').attr('src', '');
+        });
+
+        // Función para extraer el ID de YouTube
+        function getYoutubeId(url) {
+            // Soporta youtube.com/watch?v= y youtu.be/
+            const regExp = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&?/]+)/;
+            const match = url.match(regExp);
+            return match ? match[1] : null;
         }
 
         function getIconByTipo(tipo) {
@@ -496,6 +614,10 @@
                     return 'bi-file-earmark-play text-info';
                 case 'imagen jpeg':
                     return 'bi-file-earmark-image text-success';
+                case 'video en línea (youtube, vimeo, etc.)':
+                    return 'bi-youtube'; // O usa otro icono si prefieres
+                case 'recurso web':
+                    return 'bi-globe text-primary';
                 default:
                     return 'bi-file-earmark text-secondary';
             }
