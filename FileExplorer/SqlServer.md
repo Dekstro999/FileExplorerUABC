@@ -1,6 +1,5 @@
 QUERY PARA CREAR BASE DE DATOS DE UNIVERSIDADES EN SQL SERVER
 
-
 -- BORRAR TABLAS SI EXISTEN
 DROP TABLE IF EXISTS RecursosContenido;
 DROP TABLE IF EXISTS TiposArchivo;
@@ -157,6 +156,7 @@ CROSS JOIN (
     SELECT 7 UNION ALL
     SELECT 8
 ) s;
+
 
 
 
@@ -504,7 +504,10 @@ INSERT INTO TiposArchivo (Nombre, Extension, MimeType) VALUES
 ('Presentación PowerPoint', '.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'),
 ('Documento Word', '.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
 ('Video MP4', '.mp4', 'video/mp4'),
-('Imagen JPEG', '.jpg', 'image/jpeg');
+('Imagen JPEG', '.jpg', 'image/jpeg'),
+('Video en línea (YouTube, Vimeo, etc.)', NULL, 'text/html'),
+('Recurso Web', NULL, 'text/html');
+
 
 
 -- Eliminar semestres 1 y 2 de todas las carreras de Ingeniería excepto Tronco Común
