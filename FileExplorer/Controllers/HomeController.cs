@@ -94,11 +94,30 @@ namespace FileExplorer.Controllers
             return Json(recursos);
         }
 
+        // endpoints para actualizar recurs
         [HttpGet]
         public IActionResult GetTiposArchivo()
         {
             var tipos = _fileExplorerService.GetTiposArchivo();
             return Json(tipos.Select(t => new { id = t.Id, nombre = t.Nombre, extension = t.Extension }));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditRecursoContenido(int Id, string Nombre, string Url, int TipoArchivoId, string Descripcion)
+        {
+            var result = await _fileExplorerService.EditRecursoContenidoAsync(Id, Nombre, Url, TipoArchivoId, Descripcion);
+            if (result) return Ok();
+            return BadRequest();
+        }
+        //---
+
+        [HttpGet]
+        public async Task<IActionResult> GetRecursoContenido(int id)
+        {
+            var recurso = await _fileExplorerService.GetRecursoContenidoByIdAsync(id);
+            if (recurso == null)
+                return NotFound();
+            return Json(recurso);
         }
 
         private FileNode FindNodeByPath(FileNode node, string path)

@@ -196,6 +196,24 @@ public class FileExplorerService
         throw new NotImplementedException();
     }
 
+    public async Task<object> GetRecursoContenidoByIdAsync(int id)
+    {
+        var recurso = await _context.RecursosContenido
+            .Include(r => r.TipoArchivo)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (recurso == null) return null;
+
+        return new
+        {
+            id = recurso.Id,
+            nombre = recurso.Nombre,
+            url = recurso.Url,
+            tipoArchivoId = recurso.TipoArchivoId,
+            descripcion = recurso.Descripcion
+        };
+    }
+
     public async Task<bool> AddMateriaAsync(string nombre, string semestrePath)
     {
         var parts = semestrePath.Trim('/').Split('/');
@@ -371,6 +389,19 @@ public class FileExplorerService
             return false;
 
         _context.RecursosContenido.Remove(recurso);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> EditRecursoContenidoAsync(int id, string nombre, string url, int tipoArchivoId, string descripcion)
+    {
+        var recurso = await _context.RecursosContenido.FindAsync(id);
+        if (recurso == null) return false;
+
+        recurso.Nombre = nombre;
+        recurso.Url = url;
+        recurso.TipoArchivoId = tipoArchivoId;
+        recurso.Descripcion = descripcion;
         await _context.SaveChangesAsync();
         return true;
     }

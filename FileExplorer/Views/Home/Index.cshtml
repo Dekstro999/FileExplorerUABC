@@ -113,10 +113,122 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Manejar clic en carpetas en el panel principal
-            $(document).on('click', '.folder-card', function() {
+            // Variable para rastrear si estamos en medio de una navegación programática
+            let isNavigating = false;
+
+            // Función para obtener el path actual
+            function getCurrentPath() {
+                // Primero intentar obtener del estado del historial
+                if (history.state && history.state.path) {
+                    return history.state.path;
+                }
+                // Si no, obtener de la URL
+                return new URLSearchParams(window.location.search).get('path') || '/UABC';
+            }
+
+            // Función para sincronizar el estado cuando sea necesario
+            function syncBrowserState(path) {
+                const currentUrl = new URL(window.location);
+                const urlPath = currentUrl.searchParams.get('path') || '/UABC';
+
+                // Si el path no coincide con la URL, actualizar
+                if (urlPath !== path) {
+                    currentUrl.searchParams.set('path', path);
+                    history.replaceState({ path: path }, '', currentUrl.toString());
+                }
+            }
+
+            // funcion para cargar contenido de carpetas
+            function loadFolderContents(path, pushState = true) {
+                // Evitar navegación recursiva
+                if (isNavigating && !pushState) {
+                    return;
+                }
+
+                isNavigating = true;
+                const parts = path.split('/').filter(p => p);
+
+                // Si es un contenido (nivel 7), mostrar recursos
+                if (parts.length === 7) {
+                    loadRecursosContenido(path);
+                    updateAddButtons(path);
+                    if (pushState) {
+                        history.pushState({ path: path }, '', '?path=' + encodeURIComponent(path));
+                    }
+                    updateBreadcrumb(path);
+                    isNavigating = false;
+                    return;
+                }
+
+                // Si no, mostrar carpetas/hijos normalmente
+                $.ajax({
+                    url: '/Home/GetFolderContents',
+                    type: 'GET',
+                    data: { path: path },
+                    success: function(data) {
+                        updateBreadcrumb(path);
+                        updateFolderContents(data);
+                        updateAddButtons(path);
+                        if (pushState) {
+                            history.pushState({ path: path }, '', '?path=' + encodeURIComponent(path));
+                        }
+                        isNavigating = false;
+                    },
+                    error: function() {
+                        alert('Error al cargar el contenido de la carpeta');
+                        isNavigating = false;
+                    }
+                });
+            }
+
+            // Función para inicializar el estado inicial
+            function initializeState() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const initialPath = urlParams.get('path') || '/UABC';
+
+                // Establecer el estado inicial si no existe
+                if (!history.state) {
+                    history.replaceState({ path: initialPath }, '', window.location.href);
+                }
+
+                // Cargar el contenido inicial si no es la raíz
+                if (initialPath !== '/UABC') {
+                    loadFolderContents(initialPath, false);
+                    updateBreadcrumb(initialPath);
+                    updateAddButtons(initialPath);
+                }
+            }
+
+            // Manejo mejorado del evento popstate
+            window.addEventListener('popstate', function(event) {
+                // Prevenir múltiples ejecuciones
+                if (isNavigating) {
+                    return;
+                }
+
+                let path = '/UABC';
+
+                // Obtener el path del estado o de la URL
+                if (event.state && event.state.path) {
+                    path = event.state.path;
+                } else {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    path = urlParams.get('path') || '/UABC';
+                }
+
+                console.log('Navegando a:', path); // Para debugging
+
+                // Cargar el contenido sin pushState para evitar bucles
+                loadFolderContents(path, false);
+            });
+
+            // Manejar clic en carpetas en el panel principal (MEJORADO)
+            $(document).on('click', '.folder-card', function(e) {
+                e.preventDefault();
                 const path = $(this).data('path');
-                loadFolderContents(path);
+                if (path && path !== getCurrentPath()) {
+                    loadFolderContents(path);
+                }
             });
 
             // Manejar clic en nodos del árbol
@@ -140,12 +252,24 @@
             $(document).on('click', '.folder-name', function(e) {
                 e.preventDefault();
                 const path = $(this).data('path');
-                loadFolderContents(path);
+                if (path && path !== getCurrentPath()) {
+                    loadFolderContents(path);
+                }
             });
 
+            // Manejar clics en el breadcrumb (MEJORADO)
+            $(document).on('click', '#breadcrumb a', function(e) {
+                e.preventDefault();
+                const path = $(this).data('path');
+                if (path && path !== getCurrentPath()) {
+                    loadFolderContents(path);
+                }
+            });
 
-
-        $(document).ready(function () {
+            // Inicializar el estado al cargar la página
+            initializeState();
+            
+            // Sidebar toggle
             $('#toggle-sidebar').on('click', function () {
                 $('#sidebar-panel').addClass('d-none');
                 $('#sidebar-placeholder').removeClass('d-none');
@@ -157,179 +281,138 @@
                 $('#sidebar-placeholder').addClass('d-none');
                 $('#main-panel').removeClass('flex-grow-1').css('width', '').addClass('col-md-9');
             });
-        });
 
+            // Sidebar resizable
+            let isResizing = false;
+            let lastDownX = 0;
+            let sidebarMin = 180; // px
+            let sidebarMax = 600; // px
 
+            $('#sidebar-resize-handle').on('mousedown', function(e) {
+                isResizing = true;
+                lastDownX = e.clientX;
+                $('body').addClass('unselectable');
+                e.preventDefault();
+            });
 
-        // Sidebar resizable
-        let isResizing = false;
-        let lastDownX = 0;
-        let sidebarMin = 180; // px
-        let sidebarMax = 600; // px
+            $(document).on('mousemove', function(e) {
+                if (!isResizing) return;
+                let offsetRight = document.body.offsetWidth - e.clientX;
+                let newWidth = e.clientX - $('#sidebar-panel').offset().left;
+                if (newWidth < sidebarMin) newWidth = sidebarMin;
+                if (newWidth > sidebarMax) newWidth = sidebarMax;
+                $('#sidebar-panel').css('width', newWidth + 'px');
+            });
 
-        $('#sidebar-resize-handle').on('mousedown', function(e) {
-            isResizing = true;
-            lastDownX = e.clientX;
-            $('body').addClass('unselectable');
-            e.preventDefault();
-        });
-
-        $(document).on('mousemove', function(e) {
-            if (!isResizing) return;
-            let offsetRight = document.body.offsetWidth - e.clientX;
-            let newWidth = e.clientX - $('#sidebar-panel').offset().left;
-            if (newWidth < sidebarMin) newWidth = sidebarMin;
-            if (newWidth > sidebarMax) newWidth = sidebarMax;
-            $('#sidebar-panel').css('width', newWidth + 'px');
-            // $('#main-panel').css('margin-left', newWidth + 'px');
-        });
-
-        $(document).on('mouseup', function(e) {
-            if (isResizing) {
-                isResizing = false;
-                $('body').removeClass('unselectable');
-            }
-        });
-
-        // Opcional: CSS para evitar selección de texto al arrastrar
-        $('<style>.unselectable{user-select:none;}</style>').appendTo('head');
-
-
-                    // Mostrar botones "+" solo en nivel de materia o contenido
-        function updateAddButtons(path) {
-            const parts = path.split('/').filter(p => p);
-            $('#add-materia-btn').hide();
-            $('#add-contenido-btn').hide();
-            $('#add-recurso-btn').hide();
-            if (parts.length === 5) { // Semestre
-                $('#add-materia-btn').show();
-            } else if (parts.length === 6) { // Materia
-                $('#add-contenido-btn').show();
-            } else if (parts.length === 7) { // Contenido
-                $('#add-recurso-btn').show();
-            }
-        }
-
-        // Llama a updateAddButtons en cada navegación
-                function loadFolderContents(path, pushState = true) {
-            const parts = path.split('/').filter(p => p);
-            // Si es un contenido (nivel 7), mostrar recursos
-            if (parts.length === 7) {
-                loadRecursosContenido(path);
-                updateAddButtons(path);
-                if (pushState) {
-                    history.pushState({ path: path }, '', '?path=' + encodeURIComponent(path));
-                }
-                updateBreadcrumb(path);
-                return;
-            }
-
-            // Si no, mostrar carpetas/hijos normalmente
-            $.ajax({
-                url: '/Home/GetFolderContents',
-                type: 'GET',
-                data: { path: path },
-                success: function(data) {
-                    updateBreadcrumb(path);
-                    updateFolderContents(data);
-                    updateAddButtons(path);
-                    if (pushState) {
-                        history.pushState({ path: path }, '', '?path=' + encodeURIComponent(path));
-                    }
-                },
-                error: function() {
-                    alert('Error al cargar el contenido de la carpeta');
+            $(document).on('mouseup', function(e) {
+                if (isResizing) {
+                    isResizing = false;
+                    $('body').removeClass('unselectable');
                 }
             });
-        }
 
-        // Mostrar modal para agregar Materia
-        $('#add-materia-btn').on('click', function() {
-            $('#addModalLabel').text('Agregar Materia');
-            $('#addModalBody').html(`
-                <div class="mb-3">
-                    <label class="form-label">Nombre de la materia</label>
-                    <input type="text" class="form-control" name="Nombre" required />
-                </div>
-                <input type="hidden" name="SemestrePath" value="${getCurrentPath()}" />
-            `);
-            $('#addForm').attr('data-type', 'materia');
-            var modal = new bootstrap.Modal(document.getElementById('addModal'));
-            modal.show();
-        });
+            $('<style>.unselectable{user-select:none;}</style>').appendTo('head');
 
-        // Mostrar modal para agregar Contenido
-        $('#add-contenido-btn').on('click', function() {
-            $('#addModalLabel').text('Agregar Contenido');
-            $('#addModalBody').html(`
-                <div class="mb-3">
-                    <label class="form-label">Número</label>
-                    <input type="text" class="form-control" name="Numero" required placeholder="Ejemplo 2.4" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Título</label>
-                    <input type="text" class="form-control" name="Titulo" required />
-                </div>
-                <input type="hidden" name="MateriaPath" value="${getCurrentPath()}" />
-            `);
-            $('#addForm').attr('data-type', 'contenido');
-            var modal = new bootstrap.Modal(document.getElementById('addModal'));
-            modal.show();
-        });
+            // Mostrar botones "+" solo en nivel de materia o contenido
+            function updateAddButtons(path) {
+                const parts = path.split('/').filter(p => p);
+                $('#add-materia-btn').hide();
+                $('#add-contenido-btn').hide();
+                $('#add-recurso-btn').hide();
+                if (parts.length === 5) { // Semestre
+                    $('#add-materia-btn').show();
+                } else if (parts.length === 6) { // Materia
+                    $('#add-contenido-btn').show();
+                } else if (parts.length === 7) { // Contenido
+                    $('#add-recurso-btn').show();
+                }
+            }
 
-                // Mostrar modal para agregar Recurso
-        $('#add-recurso-btn').on('click', function() {
-            // Cargar tipos de archivo por AJAX
-            $.get('/Home/GetTiposArchivo', function(tipos) {
-                let options = tipos.map(t => `<option value="${t.id}">${t.nombre} (${t.extension})</option>`).join('');
-                $('#addModalLabel').text('Agregar Recurso');
+            // Mostrar modal para agregar Materia
+            $('#add-materia-btn').on('click', function() {
+                $('#addModalLabel').text('Agregar Materia');
                 $('#addModalBody').html(`
                     <div class="mb-3">
-                        <label class="form-label">Nombre</label>
+                        <label class="form-label">Nombre de la materia</label>
                         <input type="text" class="form-control" name="Nombre" required />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">URL
-                            <a tabindex="0" class="ms-1 info-icon" role="button"
-                               data-bs-toggle="popover"
-                               data-bs-trigger="manual"
-                               data-bs-placement="right"
-                               title="Soporte de URL's'"
-                               data-bs-content="Ingresa la URL completa de donde tengas alojado tu recurso o de algun video o pagina web, por ejemplo: https://www.ejemplo.com/archivo.pdf">
-                                <i class="bi bi-info-circle text-secondary"></i>
-                            </a>
-                        </label>
-                        <input type="url" class="form-control" name="Url" required placeholder="https://..." />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tipo de archivo</label>
-                        <select class="form-select" name="TipoArchivoId" required>
-                            <option value="">Selecciona un tipo</option>
-                            ${options}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Descripción</label>
-                        <textarea class="form-control" name="Descripcion" rows="2"></textarea>
-                    </div>
-                    <input type="hidden" name="ContenidoPath" value="${getCurrentPath()}" />
+                    <input type="hidden" name="SemestrePath" value="${getCurrentPath()}" />
                 `);
-                $('#addForm').attr('data-type', 'recurso');
+                $('#addForm').attr('data-type', 'materia');
                 var modal = new bootstrap.Modal(document.getElementById('addModal'));
                 modal.show();
-
-                // Inicializar popover de Bootstrap para el icono de info
-                setTimeout(function() {
-                    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-                    popoverTriggerList.forEach(function (popoverTriggerEl) {
-                        new bootstrap.Popover(popoverTriggerEl);
-                    });
-                }, 100);
             });
-        });
 
-        // Manejar el submit del formulario del modal (agrega el caso 'recurso')
-        $('#addForm').on('submit', function(e) {
+            // Mostrar modal para agregar Contenido
+            $('#add-contenido-btn').on('click', function() {
+                $('#addModalLabel').text('Agregar Contenido');
+                $('#addModalBody').html(`
+                    <div class="mb-3">
+                        <label class="form-label">Número</label>
+                        <input type="text" class="form-control" name="Numero" required placeholder="Ejemplo 2.4" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" class="form-control" name="Titulo" required />
+                    </div>
+                    <input type="hidden" name="MateriaPath" value="${getCurrentPath()}" />
+                `);
+                $('#addForm').attr('data-type', 'contenido');
+                var modal = new bootstrap.Modal(document.getElementById('addModal'));
+                modal.show();
+            });
+
+            // Mostrar modal para agregar Recurso
+            $('#add-recurso-btn').on('click', function() {
+                $.get('/Home/GetTiposArchivo', function(tipos) {
+                    let options = tipos.map(t => `<option value="${t.id}">${t.nombre} (${t.extension})</option>`).join('');
+                    $('#addModalLabel').text('Agregar Recurso');
+                    $('#addModalBody').html(`
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" name="Nombre" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">URL
+                                <a tabindex="0" class="ms-1 info-icon" role="button"
+                                   data-bs-toggle="popover"
+                                   data-bs-trigger="manual"
+                                   data-bs-placement="right"
+                                   title="Soporte de URL's'"
+                                   data-bs-content="Ingresa la URL completa de donde tengas alojado tu recurso o de algun video o pagina web, por ejemplo: https://www.ejemplo.com/archivo.pdf">
+                                    <i class="bi bi-info-circle text-secondary"></i>
+                                </a>
+                            </label>
+                            <input type="url" class="form-control" name="Url" required placeholder="https://..." />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de archivo</label>
+                            <select class="form-select" name="TipoArchivoId" required>
+                                <option value="">Selecciona un tipo</option>
+                                ${options}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" name="Descripcion" rows="2"></textarea>
+                        </div>
+                        <input type="hidden" name="ContenidoPath" value="${getCurrentPath()}" />
+                    `);
+                    $('#addForm').attr('data-type', 'recurso');
+                    var modal = new bootstrap.Modal(document.getElementById('addModal'));
+                    modal.show();
+
+                    setTimeout(function() {
+                        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+                        popoverTriggerList.forEach(function (popoverTriggerEl) {
+                            new bootstrap.Popover(popoverTriggerEl);
+                        });
+                    }, 100);
+                });
+            });
+
+            // Manejar el submit del formulario del modal
+            $('#addForm').on('submit', function(e) {
             e.preventDefault();
             const type = $(this).attr('data-type');
             const data = $(this).serialize();
@@ -340,6 +423,8 @@
                 url = '/Home/AddContenido';
             } else if (type === 'recurso') {
                 url = '/Home/AddRecursoContenido';
+            } else if (type === 'editar-recurso') {
+                url = '/Home/EditRecursoContenido';
             }
             $.ajax({
                 url: url,
@@ -347,25 +432,18 @@
                 data: data,
                 success: function() {
                     $('#addModal').modal('hide');
-                    if (type === 'recurso') {
+                    if (type === 'recurso' || type === 'editar-recurso') {
                         loadRecursosContenido(getCurrentPath());
                     } else {
-                        loadFolderContents(getCurrentPath());
+                        loadFolderContents(getCurrentPath(), false);
                         reloadFileTree();
                     }
                 },
                 error: function() {
-                    alert('Error al agregar');
+                    alert('Error al guardar');
                 }
             });
         });
-
-        // Obtener el path actual desde la URL
-        function getCurrentPath() {
-            return new URLSearchParams(window.location.search).get('path') || '/UABC';
-        }
-
-
 
             function updateBreadcrumb(path) {
                 const parts = path.split('/').filter(p => p);
@@ -417,250 +495,255 @@
                 $('#folder-contents').html(html);
             }
 
-            // Manejar clics en el breadcrumb
-            $(document).on('click', '#breadcrumb a', function(e) {
-                e.preventDefault();
+            // Eliminar nodo
+            $(document).on('click', '.delete-node', function(e) {
+                e.stopPropagation();
                 const path = $(this).data('path');
-                loadFolderContents(path);
-            });
-
-            // Al cargar la página, si hay un path en la URL, cargarlo
-            const urlParams = new URLSearchParams(window.location.search);
-            const initialPath = urlParams.get('path');
-            if (initialPath && initialPath !== '/UABC') {
-                loadFolderContents(initialPath);
-            }
-        });
-
-        $(document).on('click', '.delete-node', function(e) {
-            e.stopPropagation();
-            const path = $(this).data('path');
-            if (confirm('¿Seguro que deseas eliminar este elemento?')) {
-                $.ajax({
-                    url: '/Home/DeleteNode',
-                    type: 'POST',
-                    data: { path: path },
-                    success: function() {
-                        // Actualiza el panel derecho y el árbol lateral SIEMPRE
-                        loadFolderContents(getCurrentPath());
-                        reloadFileTree();
-                    },
-                    error: function() {
-                        alert('Error al eliminar el elemento');
-                    }
-                });
-            }
-        });
-
-
-                // Defínela aquí, fuera de cualquier función o bloque
-        function getCurrentPath() {
-            return new URLSearchParams(window.location.search).get('path') || '/UABC';
-        }
-                // Eliminar recurso desde la card
-        $(document).on('click', '.delete-recurso', function(e) {
-            e.preventDefault(); 
-            e.stopPropagation();
-            const recursoId = $(this).data('id');
-            const currentPath = getCurrentPath();
-            if (confirm('¿Seguro que deseas eliminar este recurso?')) {
-                $.ajax({
-                    url: '/Home/DeleteRecursoContenido',
-                    type: 'POST',
-                    data: { id: recursoId },
-                    success: function() {
-                        loadRecursosContenido(currentPath);
-                    },
-                    error: function() {
-                        alert('Error al eliminar el recurso');
-                    }
-                });
-            }
-        });
-
-        function reloadFileTree() {
-            $.ajax({
-                url: '/Home/FileTreePartial',
-                type: 'GET',
-                success: function (html) {
-                    $('#file-tree').html(html);
-                }
-            });
-        }
-
-        window.onpopstate = function(event) {
-            let path = '/UABC';
-            if (event.state && event.state.path) {
-                path = event.state.path;
-            } else {
-                // Si no hay estado, intenta obtener el path de la URL
-                const urlParams = new URLSearchParams(window.location.search);
-                path = urlParams.get('path') || '/UABC';
-            }
-            loadFolderContents(path, false);
-        };
-
-        function loadRecursosContenido(path) {
-            $.ajax({
-                url: '/Home/GetRecursosContenido',
-                type: 'GET',
-                data: { path: path },
-                success: function(data) {
-                    let html = '';
-                    if (data.length > 0) {
-                        html += '<div class="row">';
-                        data.forEach(function(r, idx) {
-                            const iconClass = getIconByTipo(r.tipo);
-                            const desc = r.descripcion ? r.descripcion.replace(/"/g, '&quot;') : 'Sin descripción';
-                            const fecha = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX') : 'Sin fecha';
-                            const url = r.url || '#';
-                            const urlTrunc = url.length > 30 ? url.substring(0, 30) + '...' : url;
-                            let isYoutube = (r.tipo && r.tipo.toLowerCase().includes('video en línea')) &&
-                                (r.url && r.url.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i));
-                            html += `
-                                <div class="col-md-3 mb-3">
-                                    <div class="card h-100 recurso-card position-relative">
-                                        <span class="position-absolute top-0 start-0 m-2">
-                                            <a tabindex="0" class="info-icon" role="button"
-                                               data-bs-toggle="popover"
-                                               data-bs-trigger="focus"
-                                               data-bs-placement="right"
-                                               title="Información"
-                                               data-bs-html="true"
-                                               data-bs-content="<strong>Descripción:</strong> ${desc}<br/><strong>Fecha:</strong> ${fecha}<br/><strong>URL:</strong> <span class='url-trunc' title='${url}'>${urlTrunc}</span> <a href='#' class='copy-url' data-url='${url}' tabindex='-1' title='Copiar URL'><i class='bi bi-clipboard ms-1'></i></a>">
-                                                <i class="bi bi-info-circle text-secondary"></i>
-                                            </a>
-                                        </span>
-                                        <button class="btn btn-link btn-sm text-danger delete-recurso position-absolute top-0 end-0 mt-1 me-1" data-id="${r.id}" title="Eliminar recurso">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                        <div class="card-body text-center">
-                                            ${
-                                                isYoutube
-                                                ? `<a href="#" class="open-youtube" data-url="${r.url}" data-nombre="${r.nombre.replace(/"/g, '&quot;')}" title="Ver video de YouTube">
-                                                       <i class="bi bi-youtube text-danger" style="font-size:2.5rem;"></i>
-                                                   </a>`
-                                                : `<a href="${r.url}" target="_blank" title="Abrir recurso">
-                                                       <i class="bi ${iconClass}" style="font-size:2.5rem;"></i>
-                                                   </a>`
-                                            }
-                                            <h6 class="mt-2 mb-1 text-truncate" title="${r.nombre}">
-                                                <a href="${r.url}" target="_blank" class="text-decoration-none">${r.nombre}</a>
-                                            </h6>
-                                            <span class="badge bg-light text-dark d-block text-truncate" style="max-width: 100%; width: 100%;" title="${r.tipo || ''}">
-                                                ${r.tipo || ''}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        html += '</div>';
-                    } else {
-                        html = '<div class="alert alert-info">No hay recursos para este contenido.</div>';
-                    }
-                    $('#folder-contents').html(html);
-
-                            // Inicializar popovers de Bootstrap
-                    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-                    popoverTriggerList.forEach(function (popoverTriggerEl) {
-                        new bootstrap.Popover(popoverTriggerEl);
-                    });
-
-                    // Manejar apertura/cierre manual del popover
-                    $(document).off('click', '.info-icon').on('click', '.info-icon', function (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        var $this = $(this);
-                        $('[data-bs-toggle="popover"]').not($this).each(function () {
-                            var pop = bootstrap.Popover.getInstance(this);
-                            if (pop) pop.hide();
-                        });
-                        var popover = bootstrap.Popover.getOrCreateInstance(this);
-                        if ($this.attr('aria-describedby')) {
-                            popover.hide();
-                        } else {
-                            popover.show();
+                if (confirm('¿Seguro que deseas eliminar este elemento?')) {
+                    $.ajax({
+                        url: '/Home/DeleteNode',
+                        type: 'POST',
+                        data: { path: path },
+                        success: function() {
+                            loadFolderContents(getCurrentPath(), false);
+                            reloadFileTree();
+                        },
+                        error: function() {
+                            alert('Error al eliminar el elemento');
                         }
                     });
+                }
+            });
 
-                    // Cierra el popover si se hace clic fuera
-                    $(document).off('click.popover-close').on('click.popover-close', function (e) {
-                        if (!$(e.target).closest('.popover, .info-icon').length) {
-                            $('[data-bs-toggle="popover"]').each(function () {
+            // Ediytar
+            $(document).on('click', '.edit-recurso', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const recursoId = $(this).data('id');
+            $.get('/Home/GetRecursoContenido', { id: recursoId }, function(recurso) {
+                $.get('/Home/GetTiposArchivo', function(tipos) {
+                    let options = tipos.map(t => 
+                        `<option value="${t.id}"${t.id === recurso.tipoArchivoId ? ' selected' : ''}>${t.nombre} (${t.extension})</option>`
+                    ).join('');
+                    $('#addModalLabel').text('Editar Recurso');
+                    $('#addModalBody').html(`
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" name="Nombre" required value="${recurso.nombre}" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">URL</label>
+                            <input type="url" class="form-control" name="Url" required value="${recurso.url}" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de archivo</label>
+                            <select class="form-select" name="TipoArchivoId" required>
+                                <option value="">Selecciona un tipo</option>
+                                ${options}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" name="Descripcion" rows="2">${recurso.descripcion || ''}</textarea>
+                        </div>
+                        <input type="hidden" name="Id" value="${recurso.id}" />
+                    `);
+                    $('#addForm').attr('data-type', 'editar-recurso');
+                    var modal = new bootstrap.Modal(document.getElementById('addModal'));
+                    modal.show();
+                });
+            });
+});
+
+            // Eliminar recurso desde la card
+            $(document).on('click', '.delete-recurso', function(e) {
+                e.preventDefault(); 
+                e.stopPropagation();
+                const recursoId = $(this).data('id');
+                const currentPath = getCurrentPath();
+                if (confirm('¿Seguro que deseas eliminar este recurso?')) {
+                    $.ajax({
+                        url: '/Home/DeleteRecursoContenido',
+                        type: 'POST',
+                        data: { id: recursoId },
+                        success: function() {
+                            loadRecursosContenido(currentPath);
+                        },
+                        error: function() {
+                            alert('Error al eliminar el recurso');
+                        }
+                    });
+                }
+            });
+
+            function reloadFileTree() {
+                $.ajax({
+                    url: '/Home/FileTreePartial',
+                    type: 'GET',
+                    success: function (html) {
+                        $('#file-tree').html(html);
+                    }
+                });
+            }
+
+            function loadRecursosContenido(path) {
+                $.ajax({
+                    url: '/Home/GetRecursosContenido',
+                    type: 'GET',
+                    data: { path: path },
+                    success: function(data) {
+                        let html = '';
+                        if (data.length > 0) {
+                            html += '<div class="row">';
+                            data.forEach(function(r, idx) {
+                                const iconClass = getIconByTipo(r.tipo);
+                                const desc = r.descripcion ? r.descripcion.replace(/"/g, '&quot;') : 'Sin descripción';
+                                const fecha = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX') : 'Sin fecha';
+                                const url = r.url || '#';
+                                const urlTrunc = url.length > 30 ? url.substring(0, 30) + '...' : url;
+                                let isYoutube = (r.tipo && r.tipo.toLowerCase().includes('video en línea')) &&
+                                    (r.url && r.url.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i));
+                                html += `
+                                    <div class="col-md-3 mb-3">
+                                        <div class="card h-100 recurso-card position-relative">
+                                            <span class="position-absolute top-0 start-0 m-2">
+                                                <a tabindex="0" class="info-icon" role="button"
+                                                   data-bs-toggle="popover"
+                                                   data-bs-trigger="focus"
+                                                   data-bs-placement="right"
+                                                   title="Información"
+                                                   data-bs-html="true"
+                                                   data-bs-content="<strong>Descripción:</strong> ${desc}<br/><strong>Fecha:</strong> ${fecha}<br/><strong>URL:</strong> <span class='url-trunc' title='${url}'>${urlTrunc}</span> <a href='#' class='copy-url' data-url='${url}' tabindex='-1' title='Copiar URL'><i class='bi bi-clipboard ms-1'></i></a>">
+                                                    <i class="bi bi-info-circle text-secondary"></i>
+                                                </a>
+                                            </span>
+                                            <button class="btn btn-link btn-sm text-primary edit-recurso position-absolute top-0 end-0 mt-1 me-5" data-id="${r.id}" title="Editar recurso">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-link btn-sm text-danger delete-recurso position-absolute top-0 end-0 mt-1 me-1" data-id="${r.id}" title="Eliminar recurso">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            <div class="card-body text-center">
+                                                ${
+                                                    isYoutube
+                                                    ? `<a href="#" class="open-youtube" data-url="${r.url}" data-nombre="${r.nombre.replace(/"/g, '&quot;')}" title="Ver video de YouTube">
+                                                           <i class="bi bi-youtube text-danger" style="font-size:2.5rem;"></i>
+                                                       </a>`
+                                                    : `<a href="${r.url}" target="_blank" title="Abrir recurso">
+                                                           <i class="bi ${iconClass}" style="font-size:2.5rem;"></i>
+                                                       </a>`
+                                                }
+                                                <h6 class="mt-2 mb-1 text-truncate" title="${r.nombre}">
+                                                    <a href="${r.url}" target="_blank" class="text-decoration-none">${r.nombre}</a>
+                                                </h6>
+                                                <span class="badge bg-light text-dark d-block text-truncate" style="max-width: 100%; width: 100%;" title="${r.tipo || ''}">
+                                                    ${r.tipo || ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            html += '</div>';
+                        } else {
+                            html = '<div class="alert alert-info">No hay recursos para este contenido.</div>';
+                        }
+                        $('#folder-contents').html(html);
+
+                        // Inicializar popovers de Bootstrap
+                        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+                        popoverTriggerList.forEach(function (popoverTriggerEl) {
+                            new bootstrap.Popover(popoverTriggerEl);
+                        });
+
+                        // Manejar apertura/cierre manual del popover
+                        $(document).off('click', '.info-icon').on('click', '.info-icon', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            var $this = $(this);
+                            $('[data-bs-toggle="popover"]').not($this).each(function () {
                                 var pop = bootstrap.Popover.getInstance(this);
                                 if (pop) pop.hide();
                             });
-                        }
-                    });
-
-                    // Evento de copiar dentro del popover
-                    $(document).off('click', '.popover .copy-url').on('click', '.popover .copy-url', function (ev) {
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        const url = $(this).data('url');
-                        navigator.clipboard.writeText(url).then(function () {
-                            $(ev.target).closest('.copy-url').find('i').removeClass('bi-clipboard').addClass('bi-clipboard-check');
-                            setTimeout(() => {
-                                $(ev.target).closest('.copy-url').find('i').removeClass('bi-clipboard-check').addClass('bi-clipboard');
-                            }, 1200);
+                            var popover = bootstrap.Popover.getOrCreateInstance(this);
+                            if ($this.attr('aria-describedby')) {
+                                popover.hide();
+                            } else {
+                                popover.show();
+                            }
                         });
-                    });
+
+                        $(document).off('click.popover-close').on('click.popover-close', function (e) {
+                            if (!$(e.target).closest('.popover, .info-icon').length) {
+                                $('[data-bs-toggle="popover"]').each(function () {
+                                    var pop = bootstrap.Popover.getInstance(this);
+                                    if (pop) pop.hide();
+                                });
+                            }
+                        });
+
+                        $(document).off('click', '.popover .copy-url').on('click', '.popover .copy-url', function (ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            const url = $(this).data('url');
+                            navigator.clipboard.writeText(url).then(function () {
+                                $(ev.target).closest('.copy-url').find('i').removeClass('bi-clipboard').addClass('bi-clipboard-check');
+                                setTimeout(() => {
+                                    $(ev.target).closest('.copy-url').find('i').removeClass('bi-clipboard-check').addClass('bi-clipboard');
+                                }, 1200);
+                            });
+                        });
+                    }
+                });
+            }
+
+            // Evento para abrir el modal de YouTube
+            $(document).on('click', '.open-youtube', function(e) {
+                e.preventDefault();
+                const url = $(this).data('url');
+                const nombre = $(this).data('nombre') || 'Video de YouTube';
+                const videoId = getYoutubeId(url);
+                if (videoId) {
+                    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+                    $('#youtubeIframe').attr('src', embedUrl);
+                    $('#youtubeModalLabel').text(nombre);
+                    var modal = new bootstrap.Modal(document.getElementById('youtubeModal'));
+                    modal.show();
                 }
             });
-        }
 
-                // Evento para abrir el modal de YouTube
-        $(document).on('click', '.open-youtube', function(e) {
-            e.preventDefault();
-            const url = $(this).data('url');
-            const nombre = $(this).data('nombre') || 'Video de YouTube';
-            const videoId = getYoutubeId(url);
-            if (videoId) {
-                const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-                $('#youtubeIframe').attr('src', embedUrl);
-                $('#youtubeModalLabel').text(nombre);
-                var modal = new bootstrap.Modal(document.getElementById('youtubeModal'));
-                modal.show();
+            // Limpiar el iframe al cerrar el modal
+            $('#youtubeModal').on('hidden.bs.modal', function () {
+                $('#youtubeIframe').attr('src', '');
+            });
+
+            // Función para extraer el ID de YouTube
+            function getYoutubeId(url) {
+                const regExp = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&?/]+)/;
+                const match = url.match(regExp);
+                return match ? match[1] : null;
+            }
+
+            function getIconByTipo(tipo) {
+                switch ((tipo || '').toLowerCase()) {
+                    case 'documento pdf':
+                        return 'bi-file-earmark-pdf text-danger';
+                    case 'presentación powerpoint':
+                        return 'bi-file-earmark-slides text-warning';
+                    case 'documento word':
+                        return 'bi-file-earmark-word text-primary';
+                    case 'video mp4':
+                        return 'bi-file-earmark-play text-info';
+                    case 'imagen jpeg':
+                        return 'bi-file-earmark-image text-success';
+                    case 'video en línea (youtube, vimeo, etc.)':
+                        return 'bi-youtube';
+                    case 'recurso web':
+                        return 'bi-globe text-primary';
+                    default:
+                        return 'bi-file-earmark text-secondary';
+                }
             }
         });
-
-        // Limpiar el iframe al cerrar el modal
-        $('#youtubeModal').on('hidden.bs.modal', function () {
-            $('#youtubeIframe').attr('src', '');
-        });
-
-        // Función para extraer el ID de YouTube
-        function getYoutubeId(url) {
-            // Soporta youtube.com/watch?v= y youtu.be/
-            const regExp = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&?/]+)/;
-            const match = url.match(regExp);
-            return match ? match[1] : null;
-        }
-
-        function getIconByTipo(tipo) {
-            switch ((tipo || '').toLowerCase()) {
-                case 'documento pdf':
-                    return 'bi-file-earmark-pdf text-danger';
-                case 'presentación powerpoint':
-                    return 'bi-file-earmark-slides text-warning';
-                case 'documento word':
-                    return 'bi-file-earmark-word text-primary';
-                case 'video mp4':
-                    return 'bi-file-earmark-play text-info';
-                case 'imagen jpeg':
-                    return 'bi-file-earmark-image text-success';
-                case 'video en línea (youtube, vimeo, etc.)':
-                    return 'bi-youtube'; // O usa otro icono si prefieres
-                case 'recurso web':
-                    return 'bi-globe text-primary';
-                default:
-                    return 'bi-file-earmark text-secondary';
-            }
-        }
-
-
     </script>
 }
-
-
