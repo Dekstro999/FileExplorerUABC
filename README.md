@@ -36,7 +36,7 @@ Explorador de archivos tipo árbol para la estructura académica de la UABC, des
 ## Configuración de la base de datos
 
 1. **Crea la base de datos y las tablas**  
-   Ejecuta el script SQL que se encuentra en el archivo [`sqlserver.md`](FileExplorer/SqlServer.md) sobre tu instancia de SQL Server.  
+   Ejecuta el script SQL que se encuentra en el archivo [`SqlServer`](FileExplorer/SqlServer) sobre tu instancia de SQL Server.  
    Esto creará la estructura necesaria para el proyecto.
 
 2. **Configura la cadena de conexión**  
