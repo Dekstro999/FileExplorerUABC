@@ -1,59 +1,92 @@
+Ôªø
 # FileExplorer UABC
 
-Explorador de archivos tipo ·rbol para la estructura de carpetas de la UABC, desarrollado con ASP.NET Core Razor Pages (.NET 8), Entity Framework Core y Bootstrap.
+Explorador de archivos tipo √°rbol para la estructura acad√©mica de la UABC, desarrollado con **ASP.NET Core Razor Pages (.NET 8)**, **Entity Framework Core** y **SQL Server**.
 
-## CaracterÌsticas
+---
 
-- VisualizaciÛn jer·rquica de carpetas (tipo ·rbol) de la UABC.
-- NavegaciÛn interactiva con AJAX (sin recargar la p·gina).
-- Breadcrumb din·mico para mostrar la ruta actual.
-- Estructura de datos persistente en base de datos (SQLite por defecto).
-- CÛdigo limpio y desacoplado (servicios, controladores, modelos).
+## Caracter√≠sticas
+
+- Visualizaci√≥n jer√°rquica de carpetas y entidades acad√©micas (Universidad, Campus, Facultad, Carrera, Semestre, Materia, Contenido, Recursos).
+- Navegaci√≥n interactiva y din√°mica.
+- CRUD de materias, contenidos y recursos.
+- Persistencia en base de datos SQL Server.
+- C√≥digo desacoplado y limpio (servicios, controladores, modelos).
+- Bootstrap para UI responsiva.
+
+---
 
 ## Requisitos
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - Visual Studio 2022 o superior
-- SQLite (por defecto) o SQL Server (opcional)
+- **SQL Server** (Express, LocalDB o instancia propia)
 
-## PaqueterÌas NuGet utilizadas
+---
+
+## Paquetes NuGet utilizados
 
 - `Microsoft.EntityFrameworkCore`
-- `Microsoft.EntityFrameworkCore.Sqlite`
+- `Microsoft.EntityFrameworkCore.Design`
+- `Microsoft.EntityFrameworkCore.SqlServer`
 - `Microsoft.EntityFrameworkCore.Tools`
-- `Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation`
-- `Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore`
-- `Microsoft.Extensions.DependencyInjection`
-- `Microsoft.AspNetCore.Mvc.NewtonsoftJson` (si se requiere serializaciÛn avanzada)
 
+---
 
-Desde Visual Studio, presiona F5.
+## Configuraci√≥n de la base de datos
+
+1. **Crea la base de datos y las tablas**  
+   Ejecuta el script SQL que se encuentra en el archivo [`sqlserver.md`](sqlserver.md) sobre tu instancia de SQL Server.  
+   Esto crear√° la estructura necesaria para el proyecto.
+
+2. **Configura la cadena de conexi√≥n**  
+   Edita el archivo `appsettings.json` y coloca el nombre de tu servidor SQL Server y la base de datos creada.  
+   Ejemplo:
+
+   ```bash
+   dotnet ef database update
+
+---
+
+## Ejecuci√≥n
+
+1. Abre el proyecto en Visual Studio 2022.
+2. Aseg√∫rate de que la cadena de conexi√≥n en `appsettings.json` es correcta.
+3. Ejecuta el proyecto (`F5` o `Ctrl+F5`).
+4. El sistema inicializar√° la estructura de carpetas y entidades si la base de datos est√° vac√≠a.
+
+---
 
 ## Estructura de la base de datos
 
-- **Modelo principal:** `FileNode`
-  - `Path` (clave primaria, string)
-  - `Name` (nombre de la carpeta)
-  - `IsDirectory` (bool)
-  - `IsExpanded` (bool)
-  - `Children` (propiedad ignorada en la BD, solo para estructura en memoria)
+* **Universidad** ‚Üí **Campus** ‚Üí **Facultad** ‚Üí **Carrera** ‚Üí **Semestre** ‚Üí **Materia** ‚Üí **Contenido** ‚Üí **RecursoContenido**
+* Tablas relacionadas con claves for√°neas y restricciones de integridad.
 
-- **InicializaciÛn:**  
-  La estructura de carpetas se inicializa autom·ticamente al crear la base de datos, usando datos semilla en `ContextoBD.cs`.
+---
 
-## øCÛmo funciona?
+## Personalizaci√≥n
 
-- El ·rbol de carpetas se renderiza en la vista principal usando Razor y Bootstrap.
-- Al hacer clic en una carpeta, se realiza una peticiÛn AJAX para cargar su contenido sin recargar la p·gina.
-- El backend responde con los hijos de la carpeta seleccionada, consultando la base de datos.
-- El breadcrumb se actualiza din·micamente para reflejar la ruta actual.
+* Modifica la estructura inicial en `DbInitializer.cs` si deseas cambiar la jerarqu√≠a o agregar datos semilla.
+* Para agregar nuevas funcionalidades, revisa los controladores y servicios.
 
-## PersonalizaciÛn
-
-- Puedes modificar la estructura inicial de carpetas editando el mÈtodo `SeedData` en `ContextoBD.cs`.
-- Para agregar nuevas funcionalidades (crear, eliminar carpetas), revisa los controladores y servicios (`FolderApiController`, `FolderService`).
+---
 
 ## Notas
 
-- El proyecto est· preparado para crecer y soportar archivos, permisos, y otras entidades si lo requieres.
-- Si tienes problemas con las migraciones, ejecuta:
+* El proyecto est√° preparado para crecer y soportar archivos, permisos y otras entidades.
+* Si tienes problemas con las migraciones o la base de datos, revisa la cadena de conexi√≥n y ejecuta el script SQL manualmente.
+
+---
+
+## Ejemplo de cadena de conexi√≥n
+
+```json
+{
+  "ConnectionStrings": {
+    "ConexionBD": "Server=DESKTOP-12345\\SQLEXPRESS;Database=FileExplorerDb;Trusted_Connection=True;MultipleActiveResultSets=true"
+  }
+}
+```
+
+```
+
