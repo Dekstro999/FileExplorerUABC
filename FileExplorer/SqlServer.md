@@ -1,4 +1,24 @@
-QUERY PARA CREAR BASE DE DATOS DE UNIVERSIDADES EN SQL SERVER
+-- Crear base de datos si no existe
+IF NOT EXISTS (
+    SELECT name 
+    FROM sys.databases 
+    WHERE name = N'FileExplorerDb'
+)
+BEGIN
+    CREATE DATABASE FileExplorerDb;
+	PRINT ' La base de datos "FileExplorerDb" ha sido creada.';
+
+END
+ELSE
+BEGIN
+    PRINT ' La base de datos "FileExplorerDb" ya existe.';
+END
+GO
+
+-- Usar la base de datos
+WAITFOR DELAY '00:00:02';
+USE FileExplorerDb;
+
 
 -- BORRAR TABLAS SI EXISTEN
 DROP TABLE IF EXISTS RecursosContenido;
@@ -11,12 +31,15 @@ DROP TABLE IF EXISTS Facultades;
 DROP TABLE IF EXISTS Campus;
 DROP TABLE IF EXISTS Universidades;
 
+
 -- CREAR TABLAS
 
 CREATE TABLE Universidades (
     Id INT PRIMARY KEY IDENTITY(1,1),
     Nombre NVARCHAR(100) NOT NULL
 );
+print 'Tabla "Universidades" creada.';
+
 
 CREATE TABLE Campus (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -24,6 +47,7 @@ CREATE TABLE Campus (
     UniversidadId INT NOT NULL,
     FOREIGN KEY (UniversidadId) REFERENCES Universidades(Id)
 );
+print 'Tabla "Campus" creada.';
 
 CREATE TABLE Facultades (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -31,6 +55,7 @@ CREATE TABLE Facultades (
     CampusId INT NOT NULL,
     FOREIGN KEY (CampusId) REFERENCES Campus(Id)
 );
+print 'Tabla "Facultades" creada.';
 
 CREATE TABLE Carreras (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -38,6 +63,7 @@ CREATE TABLE Carreras (
     FacultadId INT NOT NULL,
     FOREIGN KEY (FacultadId) REFERENCES Facultades(Id)
 );
+print 'Tabla "Carreras" creada.';
 
 CREATE TABLE Semestres (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -45,6 +71,7 @@ CREATE TABLE Semestres (
     CarreraId INT NOT NULL,
     FOREIGN KEY (CarreraId) REFERENCES Carreras(Id)
 );
+print 'Tabla "Semestres" creada.';
 
 
 CREATE TABLE Materias (
@@ -53,6 +80,7 @@ CREATE TABLE Materias (
     SemestreId INT NOT NULL,
     FOREIGN KEY (SemestreId) REFERENCES Semestres(Id)
 );
+print 'Tabla "Materias" creada.';
 
 CREATE TABLE Contenidos (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -61,6 +89,7 @@ CREATE TABLE Contenidos (
     Titulo NVARCHAR(255) NOT NULL, -- Por ejemplo: 'Historia de los patrones de software'
     FOREIGN KEY (MateriaId) REFERENCES Materias(Id)
 );
+print 'Tabla "Contenidos" creada.';
 
 CREATE TABLE TiposArchivo (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -68,6 +97,7 @@ CREATE TABLE TiposArchivo (
     Extension NVARCHAR(10),
     MimeType NVARCHAR(100)
 );
+print 'Tabla "TiposArchivo" creada.';
 
 CREATE TABLE RecursosContenido (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -80,15 +110,18 @@ CREATE TABLE RecursosContenido (
     FOREIGN KEY (ContenidoId) REFERENCES Contenidos(Id),
     FOREIGN KEY (TipoArchivoId) REFERENCES TiposArchivo(Id)
 );
-
+print 'Tabla "RecursosContenido" creada.';
 
 -- INSERTAR DATOS BASE
 
 -- Universidad
 INSERT INTO Universidades (Nombre) VALUES ('UABC');
+print 'Datos insertados en la tabla "Universidades".';
+
 
 -- Campus
 INSERT INTO Campus (Nombre, UniversidadId) VALUES ('Ensenada', 1);
+print 'Datos insertados en la tabla "Campus".';
 
 -- Facultades
 INSERT INTO Facultades (Nombre, CampusId)
@@ -98,6 +131,7 @@ VALUES
 ('Facultad de Ciencias Marinas', 1),
 ('Facultad de Deportes', 1),
 ('Facultad de Ingenieria', 1);
+print 'Datos insertados en la tabla "Facultades".';
 
 -- Carreras - Facultad de Artes
 INSERT INTO Carreras (Nombre, FacultadId)
@@ -106,6 +140,7 @@ VALUES
 ('Artes Musicales', 1),
 ('Artes Teatrales', 1),
 ('Artes Literarias', 1);
+print 'Datos insertados en la tabla "Carreras" para Facultad de Artes.';
 
 -- Carreras - Facultad de Ciencias
 INSERT INTO Carreras (Nombre, FacultadId) VALUES
@@ -113,6 +148,7 @@ INSERT INTO Carreras (Nombre, FacultadId) VALUES
 ('Matematicas', 2),
 ('Fisica', 2),
 ('Quimica', 2);
+print 'Datos insertados en la tabla "Carreras" para Facultad de Ciencias.';
 
 -- Carreras - Facultad de Ciencias Marinas
 INSERT INTO Carreras (Nombre, FacultadId) VALUES
@@ -121,6 +157,7 @@ INSERT INTO Carreras (Nombre, FacultadId) VALUES
 ('Ciencias del Mar', 3),
 ('Ingenieria en Ciencias del Mar', 3),
 ('Ingenieria en Transporte Maritimo', 3);
+print 'Datos insertados en la tabla "Carreras" para Facultad de Ciencias Marinas.';
 
 -- Carreras - Facultad de Deportes
 INSERT INTO Carreras (Nombre, FacultadId) VALUES
@@ -129,6 +166,7 @@ INSERT INTO Carreras (Nombre, FacultadId) VALUES
 ('Rehabilitacion y Terapia Fisica', 4),
 ('Nutricion y Dietetica', 4),
 ('Educacion Fisica', 4);
+print 'Datos insertados en la tabla "Carreras" para Facultad de Deportes.';
 
 -- Carreras - Facultad de Ingenieria
 INSERT INTO Carreras (Nombre, FacultadId) VALUES
@@ -139,6 +177,7 @@ INSERT INTO Carreras (Nombre, FacultadId) VALUES
 ('Ingenieria Industrial', 5),
 ('Bioingenieria', 5),
 ('Software y Tecnologias Emergentes', 5);
+print 'Datos insertados en la tabla "Carreras" para Facultad de Ingenieria.';
 
 -- Agregar 8 semestres a cada carrera
 INSERT INTO Semestres (Nombre, CarreraId)
@@ -156,6 +195,7 @@ CROSS JOIN (
     SELECT 7 UNION ALL
     SELECT 8
 ) s;
+print 'Datos insertados en la tabla "Semestres".';
 
 
 
@@ -180,6 +220,7 @@ FROM (
 ) M
 JOIN Semestres S ON S.Nombre = CONCAT('Semestre ', M.NumSem)
 JOIN Carreras C ON C.Id = S.CarreraId AND C.Nombre = 'Tronco Comun de Ingenieria';
+print 'Datos insertados en la tabla "Materias" para Tronco Comun de Ingenieria.';
 
 -- MATERIAS PARA "Ingenieria Civil" (Semestres 3 al 8)
 INSERT INTO Materias (Nombre, SemestreId)
@@ -229,6 +270,7 @@ FROM (
 ) M
 JOIN Semestres S ON S.Nombre = CONCAT('Semestre ', M.NumSem)
 JOIN Carreras C ON C.Id = S.CarreraId AND C.Nombre = 'Ingenieria Civil';
+print 'Datos insertados en la tabla "Materias" para Ingenieria Civil.';
 
 
 -- MATERIAS PARA "Ingenieria en Electronica" (Semestres 3 al 8)
@@ -279,6 +321,7 @@ FROM (
 ) M
 JOIN Semestres S ON S.Nombre = CONCAT('Semestre ', M.NumSem)
 JOIN Carreras C ON C.Id = S.CarreraId AND C.Nombre = 'Ingenieria en Electronica';
+print 'Datos insertados en la tabla "Materias" para Ingenieria en Electronica.';
 
 
 -- MATERIAS PARA "Ingenieria en Computacion" (Semestres 3 al 8)
@@ -329,6 +372,7 @@ FROM (
 ) M
 JOIN Semestres S ON S.Nombre = CONCAT('Semestre ', M.NumSem)
 JOIN Carreras C ON C.Id = S.CarreraId AND C.Nombre = 'Ingenieria en Computacion';
+print 'Datos insertados en la tabla "Materias" para Ingenieria en Computacion.';
 
 -- MATERIAS PARA "Ingenieria Industrial" (Semestres 3 al 8)
 INSERT INTO Materias (Nombre, SemestreId)
@@ -378,6 +422,7 @@ FROM (
 ) M
 JOIN Semestres S ON S.Nombre = CONCAT('Semestre ', M.NumSem)
 JOIN Carreras C ON C.Id = S.CarreraId AND C.Nombre = 'Ingenieria Industrial';
+print 'Datos insertados en la tabla "Materias" para Ingenieria Industrial.';
 
 
 -- MATERIAS PARA "Bioingenieria" (Semestres 3 al 8)
@@ -428,6 +473,7 @@ FROM (
 ) M
 JOIN Semestres S ON S.Nombre = CONCAT('Semestre ', M.NumSem)
 JOIN Carreras C ON C.Id = S.CarreraId AND C.Nombre = 'Bioingenieria';
+print 'Datos insertados en la tabla "Materias" para Bioingenieria.';
 
 
 -- MATERIAS PARA "Software y Tecnologias Emergentes" (Semestres 3 al 8)
@@ -478,6 +524,7 @@ FROM (
 ) M
 JOIN Semestres S ON S.Nombre = CONCAT('Semestre ', M.NumSem)
 JOIN Carreras C ON C.Id = S.CarreraId AND C.Nombre = 'Software y Tecnologias Emergentes';
+print 'Datos insertados en la tabla "Materias" para Software y Tecnologias Emergentes.';
 
 
 -- CONTENIDOS DE EJEMPLO PARA LA MATERIA "Arquitectura de Software"
@@ -497,6 +544,7 @@ CROSS JOIN (
     UNION ALL SELECT '2.5', 'Patrones para sistemas adaptables'
 ) C
 WHERE M.Nombre = 'Arquitectura de Software' AND Cr.Nombre = 'Software y Tecnologias Emergentes';
+print 'Datos insertados en la tabla "Contenidos" para Arquitectura de Software.';
 
 
 INSERT INTO TiposArchivo (Nombre, Extension, MimeType) VALUES
@@ -507,6 +555,7 @@ INSERT INTO TiposArchivo (Nombre, Extension, MimeType) VALUES
 ('Imagen JPEG', '.jpg', 'image/jpeg'),
 ('Video en línea (YouTube, Vimeo, etc.)', NULL, 'text/html'),
 ('Recurso Web', NULL, 'text/html');
+print 'Datos insertados en la tabla "TiposArchivo".';
 
 
 
@@ -518,6 +567,7 @@ WHERE Nombre IN ('Semestre 1', 'Semestre 2')
     WHERE FacultadId = 5 -- Facultad de Ingeniería
       AND Nombre <> 'Tronco Comun de Ingenieria'
 );
+print 'Semestres 1 y 2 eliminados de todas las carreras de Ingeniería excepto Tronco Común.';
 
 -- Eliminar semestres 3 a 8 de la carrera Tronco Comun de Ingenieria
 DELETE FROM Semestres
@@ -527,3 +577,4 @@ WHERE Nombre IN ('Semestre 3', 'Semestre 4', 'Semestre 5', 'Semestre 6', 'Semest
     WHERE Nombre = 'Tronco Comun de Ingenieria'
       AND FacultadId = 5
 );
+print 'Semestres 3 a 8 eliminados de la carrera Tronco Comun de Ingenieria.';
